@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Get Er Done</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    background: #2b2926;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+    color: #1C1A17;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 448px;
+    height: 948px;
+    background: #111;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow:
+      0 0 0 2px #2a2a2a,
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 10px 30px rgba(0, 0, 0, 0.4);
+    position: relative;
+  }
+  .phone-frame::before {
+    content: "";
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 28px;
+    background: #111;
+    border-radius: 16px;
+    z-index: 50;
+  }
+  .phone-screen {
+    width: 428px;
+    height: 928px;
+    background: #EDE8DC;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Screen wrapper */
+  .screen {
+    position: absolute;
+    inset: 0;
+    background: #EDE8DC;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms ease;
+    overflow: hidden;
+  }
+  .screen.active { opacity: 1; pointer-events: auto; }
+
+  .screen-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen-scroll::-webkit-scrollbar { width: 0; }
+
+  /* Typography */
+  .marker {
+    font-family: "Permanent Marker", cursive;
+    font-weight: 400;
+    color: #1C1A17;
+    letter-spacing: 0.5px;
+  }
+  .subtle { color: rgba(28, 26, 23, 0.75); }
+  .body-text { color: rgba(28, 26, 23, 0.55); }
+  .disclaimer { color: rgba(28, 26, 23, 0.30); }
+
+  /* ==================== HOME SCREEN ==================== */
+  .home-content {
+    padding: 24px 24px 0;
+  }
+  .app-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .app-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #C4553B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .app-icon svg { width: 26px; height: 26px; }
+  .logo-text-block {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+  .logo-title {
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: 1px;
+  }
+  .logo-subtitle {
+    font-size: 13px;
+    margin-top: 6px;
+    color: rgba(28, 26, 23, 0.75);
+  }
+  .logo-subtitle em { font-style: italic; font-weight: 700; }
+
+  .goal-heading {
+    margin-top: 84px;
+    font-size: 34px;
+    line-height: 1.15;
+  }
+  .goal-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(28, 26, 23, 0.75);
+  }
+
+  .input-wrap {
+    margin-top: 24px;
+    position: relative;
+  }
+  .goal-input {
+    width: 100%;
+    height: 56px;
+    background: #FDFAF5;
+    border: 1.5px solid #C4553B;
+    border-radius: 13px;
+    padding: 0 48px 0 18px;
+    font-size: 16px;
+    color: #1C1A17;
+    font-family: inherit;
+    outline: none;
+  }
+  .goal-input::placeholder {
+    color: rgba(28, 26, 23, 0.55);
+  }
+  .clear-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .clear-btn svg { width: 20px; height: 20px; }
+
+  .chips {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+  .chip {
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid rgba(196, 85, 59, 0.8);
+    border-radius: 15.5px;
+    background: transparent;
+    color: rgba(196, 85, 59, 0.95);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease, transform 100ms ease;
+    white-space: nowrap;
+  }
+  .chip:hover { background: rgba(196, 85, 59, 0.08); }
+  .chip:active { transform: scale(0.97); }
+
+  .home-bottom {
+    margin-top: auto;
+    padding: 0 24px 24px;
+  }
+  .cta-btn {
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    background: #C4553B;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 8px 18px rgba(196, 85, 59, 0.25);
+    transition: transform 100ms ease, box-shadow 150ms ease;
+  }
+  .cta-btn:hover { box-shadow: 0 10px 24px rgba(196, 85, 59, 0.30); }
+  .cta-btn:active { transform: translateY(1px); }
+  .cta-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .disclaimer-text {
+    margin-top: 18px;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: rgba(28, 26, 23, 0.30);
+    padding: 0 24px;
+  }
+
+  /* Home screen is a flex column to push bottom area down */
+  .home-screen-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding-bottom: 100px;
+  }
+  .home-spacer { flex: 1; min-height: 24px; }
+
+  /* ==================== HEADER (Action Plan / Saved Plans) ==================== */
+  .top-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 24px 14px;
+  }
+  .top-title {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .new-goal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #C4553B;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 6px 4px;
+  }
+  .new-goal-btn svg { width: 22px; height: 22px; }
+
+  /* ==================== ACTION PLAN SCREEN ==================== */
+  .ap-goal-card {
+    margin: 6px 16px 0;
+    background: #FDFAF5;
+    border-radius: 13px;
+    padding: 16px;
+  }
+  .ap-goal-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: rgba(28, 26, 23, 0.55);
+  }
+  .ap-goal-title {
+    margin-top: 4px;
+    font-size: 22px;
+    color: #C4553B;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .ap-progress-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ap-progress-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: rgba(28, 26, 23, 0.55);
+  }
+  .ap-progress-pct {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1C1A17;
+    line-height: 1;
+  }
+  .progress-bar {
+    margin-top: 10px;
+    width: 100%;
+    height: 5px;
+    background: #D9D5CC;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #C4553B;
+    width: 0%;
+    border-radius: 3px;
+    transition: width 350ms ease;
+  }
+  .ap-tasks-done {
+    margin-top: 10px;
+    font-size: 13px;
+    color: rgba(28, 26, 23, 0.55);
+  }
+  .ap-phases {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .ap-phase-mini { display: flex; flex-direction: column; }
+  .mini-track {
+    height: 3px;
+    background: #D9D5CC;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mini-fill {
+    height: 100%;
+    background: #C4553B;
+    width: 0%;
+    transition: width 350ms ease;
+  }
+  .mini-label {
+    margin-top: 7px;
+    font-size: 13px;
+    color: rgba(28, 26, 23, 0.55);
+  }
+
+  /* Phase block */
+  .phase-block { margin-top: 8px; }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 10px;
+  }
+  .phase-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #C4553B;
+    text-transform: uppercase;
+  }
+  .add-task-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: #C4553B;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px;
+  }
+  .add-task-btn svg { width: 22px; height: 22px; }
+
+  .task-card {
+    margin: 0 16px;
+    background: #FDFAF5;
+    border-radius: 13px;
+    overflow: hidden;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    padding: 13px 16px;
+    border-top: 1px solid rgba(28, 26, 23, 0.04);
+    min-height: 48px;
+  }
+  .task-row:first-child { border-top: none; }
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #D9D5CC;
+    background: transparent;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+  .checkbox svg { width: 12px; height: 12px; opacity: 0; transition: opacity 100ms ease; }
+  .checkbox.checked {
+    background: #C4553B;
+    border-color: #C4553B;
+  }
+  .checkbox.checked svg { opacity: 1; }
+  .task-text {
+    flex: 1;
+    margin: 0 14px;
+    font-size: 15px;
+    color: #1C1A17;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    transition: color 200ms ease;
+    padding: 4px 0;
+    word-break: break-word;
+  }
+  .task-text.done {
+    text-decoration: line-through;
+    color: rgba(28, 26, 23, 0.45);
+  }
+  .edit-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #B9B7B2;
+  }
+  .edit-btn svg { width: 14px; height: 14px; display: block; }
+
+  .save-plan-wrap {
+    padding: 18px 16px 8px;
+  }
+  .save-plan-btn {
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    background: #C4553B;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 8px 18px rgba(196, 85, 59, 0.25);
+    transition: transform 100ms ease;
+  }
+  .save-plan-btn:active { transform: translateY(1px); }
+
+  /* ==================== SAVED PLANS SCREEN ==================== */
+  .sp-list {
+    padding: 8px 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .sp-card {
+    background: #FDFAF5;
+    border-radius: 13px;
+    padding: 18px 18px 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 150ms ease;
+  }
+  .sp-card:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04); }
+  .sp-card:active { transform: scale(0.99); }
+  .sp-info { flex: 1; min-width: 0; }
+  .sp-title {
+    font-size: 22px;
+    color: #C4553B;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .sp-meta {
+    margin-top: 4px;
+    font-size: 13px;
+    color: rgba(28, 26, 23, 0.55);
+  }
+  .sp-trash, .sp-chevron {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #B9B7B2;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .sp-trash svg { width: 22px; height: 22px; display: block; }
+  .sp-chevron svg { width: 12px; height: 12px; display: block; }
+
+  .sp-empty {
+    text-align: center;
+    padding: 80px 32px 0;
+    color: rgba(28, 26, 23, 0.55);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* ==================== BOTTOM NAV ==================== */
+  .bottom-nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 83px;
+    background: #E5E0D3;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.09);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    padding-top: 10px;
+    z-index: 20;
+  }
+  .nav-tab {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #817F7B;
+    font-family: inherit;
+    padding: 4px 12px;
+    transition: color 150ms ease;
+  }
+  .nav-tab svg { width: 26px; height: 26px; }
+  .nav-tab .label { font-size: 11px; font-weight: 600; }
+  .nav-tab.active { color: #C4553B; }
+
+  /* ==================== LOADING OVERLAY ==================== */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(237, 232, 220, 0.96);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+    padding: 0 40px;
+    text-align: center;
+  }
+  .loading-overlay.active { opacity: 1; pointer-events: auto; }
+  .pulse-dot {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #C4553B;
+    animation: pulse 1.4s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(196, 85, 59, 0.5);
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(196, 85, 59, 0.55); }
+    50% { transform: scale(1); box-shadow: 0 0 0 24px rgba(196, 85, 59, 0); }
+  }
+  .loading-title {
+    font-size: 26px;
+    color: #1C1A17;
+  }
+  .loading-goal {
+    font-size: 16px;
+    color: rgba(28, 26, 23, 0.55);
+    max-width: 320px;
+    line-height: 1.4;
+  }
+  .loading-overlay.error .pulse-dot {
+    animation: none;
+    background: #C4553B;
+    box-shadow: none;
+  }
+  .loading-error-actions {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 280px;
+  }
+  .loading-overlay.error .loading-error-actions { display: flex; }
+  .loading-error-actions .modal-btn { height: 44px; }
+
+  /* ==================== SETTINGS / API KEY ==================== */
+  .settings-icon {
+    position: absolute;
+    top: 28px;
+    right: 22px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(196, 85, 59, 0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    color: #C4553B;
+    transition: background 150ms ease;
+  }
+  .settings-icon:hover { background: rgba(196, 85, 59, 0.18); }
+  .settings-icon svg { width: 18px; height: 18px; }
+  .settings-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #C4553B;
+    border: 2px solid #EDE8DC;
+    display: none;
+  }
+  .settings-icon.connected .settings-dot { display: block; background: #4a9b5e; }
+
+  .modal-body label {
+    display: block;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(28, 26, 23, 0.75);
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  .modal-input {
+    width: 100%;
+    height: 44px;
+    border: 1.5px solid rgba(196, 85, 59, 0.4);
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 14px;
+    color: #1C1A17;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #fff;
+    outline: none;
+  }
+  .modal-input:focus { border-color: #C4553B; }
+  .modal-helper {
+    font-size: 11px;
+    color: rgba(28, 26, 23, 0.55);
+    margin-top: 8px;
+    line-height: 1.4;
+    text-align: left;
+  }
+  .modal-helper a { color: #C4553B; text-decoration: underline; }
+  .modal-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .modal-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .modal-btn.primary { background: #C4553B; color: #fff; }
+  .modal-btn.secondary { background: transparent; color: rgba(28, 26, 23, 0.55); border: 1.5px solid rgba(28, 26, 23, 0.15); }
+  .modal-status {
+    font-size: 12px;
+    margin-top: 10px;
+    color: rgba(28, 26, 23, 0.55);
+    text-align: left;
+  }
+  .modal-status.connected { color: #2e7d4a; }
+
+  /* ==================== DELETE MODAL ==================== */
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    padding: 0 24px;
+  }
+  .modal-backdrop.active { opacity: 1; pointer-events: auto; }
+
+  .modal-card {
+    width: 311px;
+    background: #FDFAF5;
+    border-radius: 13px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    transform: scale(0.94);
+    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .modal-backdrop.active .modal-card { transform: scale(1); }
+
+  .modal-title {
+    font-size: 24px;
+    color: #C4553B;
+    text-align: center;
+    line-height: 1;
+  }
+  .modal-body {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: rgba(28, 26, 23, 0.75);
+    text-align: center;
+  }
+  .modal-delete-btn {
+    margin-top: 16px;
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+    background: #C4553B;
+    color: #fff;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 150ms ease, transform 100ms ease;
+  }
+  .modal-delete-btn:hover { background: #b04a32; }
+  .modal-delete-btn:active { transform: translateY(1px); }
+
+  @media (max-width: 480px) {
+    body { padding: 0; }
+    .phone-frame {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+    }
+    .phone-frame::before { display: none; }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!--
+  =====================================================================
+  Supabase Edge Function — generate-plan
+  =====================================================================
+  Deploy this as a Supabase Edge Function at: /functions/v1/generate-plan
+  Then replace SUPABASE_FUNCTION_URL below with your deployed URL.
+
+  // supabase/functions/generate-plan/index.ts
+  import "https://deno.land/x/xhr@0.1.0/mod.ts";
+  import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+  // Secret name in Supabase: CLAUDE_CODE_AI_KEY
+  // Set with: supabase secrets set CLAUDE_CODE_AI_KEY=sk-ant-...
+  const ANTHROPIC_API_KEY = Deno.env.get("CLAUDE_CODE_AI_KEY");
+
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+
+  serve(async (req) => {
+    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+    try {
+      const { goal } = await req.json();
+
+      const systemPrompt = `You are "Get Er Done", an expert personal action-planning coach. A user gives you ONE goal in their own words. You return a tightly structured, concrete 4-phase action plan as raw JSON.
+
+  ============================================================
+  OUTPUT CONTRACT (return ONLY this — no prose, no markdown, no code fences)
+  ============================================================
+  {
+    "goal": "<echo the user's goal, cleaned up to a clear sentence>",
+    "phases": [
+      { "title": "<2-4 word phase title>", "tasks": ["<task>", "<task>", "<task>", "<task>"] },
+      { "title": "...", "tasks": ["...", "...", "...", "..."] },
+      { "title": "...", "tasks": ["...", "...", "...", "..."] },
+      { "title": "...", "tasks": ["...", "...", "...", "..."] }
+    ]
+  }
+  Exactly 4 phases. Each phase has 3-4 tasks (prefer 4). Total tasks: 12-16.
+
+  ============================================================
+  STEP 1 — CLASSIFY THE GOAL'S DOMAIN
+  ============================================================
+  Silently pick the closest domain before writing tasks. Use the domain's specific vocabulary, tools, and steps:
+    • Fitness / weight loss / strength / running / sport
+    • Nutrition / cooking / diet
+    • Personal finance / savings / debt / investing / budgeting
+    • Career / job search / promotion / career change
+    • Education / learning a skill / language / certification
+    • Creative project / writing / music / art / portfolio
+    • Software / building an app / website / product launch
+    • Business / startup / side hustle / freelance
+    • Relationships / social / dating / networking / community
+    • Mental health / habits / sleep / mindfulness / stress
+    • Home / move / renovation / declutter / garden
+    • Travel / trip planning / relocation
+    • Health / medical / quit smoking / sobriety
+  If the goal mixes domains, choose the dominant one and reflect the others within tasks.
+
+  ============================================================
+  STEP 2 — PHASE STRUCTURE
+  ============================================================
+  The 4 phases must form a credible sequential arc tailored to that domain. Default arc:
+    Phase 1: Clarify & Assess  — define the target, measure the starting point, gather constraints
+    Phase 2: Set Up & Prepare  — pick tools/resources, design the system, remove friction
+    Phase 3: Execute & Build Momentum — the actual doing, with concrete weekly/numeric checkpoints
+    Phase 4: Push Through & Lock It In — finish, verify outcome, sustain or celebrate
+  You may rename phases (e.g. "Baseline", "Build the Habit", "Scale Up", "Stick the Landing") to fit the domain — but each phase must clearly differ from the others.
+
+  ============================================================
+  STEP 3 — TASK QUALITY RULES (the most important section)
+  ============================================================
+  Every task MUST satisfy ALL of these:
+    1. Starts with a strong, specific action verb (e.g. "Measure", "Calendar", "Cook", "Email", "Open", "Draft", "Calculate", "Schedule", "Cancel", "Record"). NEVER start with vague verbs like "Work on", "Focus on", "Think about", "Consider", "Try to", "Get".
+    2. Names a CONCRETE artifact, tool, person-type, place, or number whenever plausible. Use the actual nouns of the domain. Examples:
+       — fitness: "barbell back squat", "Zone 2 heart rate", "30g protein", "Strava", "MyFitnessPal"
+       — finance: "high-yield savings account (4%+ APY)", "401(k) match", "Empower budget", "credit utilization under 30%"
+       — career: "LinkedIn headline", "resume STAR bullets", "informational coffee chat", "Greenhouse", "leetcode mediums"
+       — cooking: "60-second sear per side", "internal temp 130°F", "cast iron skillet", "rest 8 minutes"
+       — language: "Anki deck", "300 most-common words", "iTalki tutor", "B1 listening podcast"
+    3. Includes a measurable number, frequency, duration, or threshold when it fits (e.g. "3x per week", "for 20 minutes", "5 contacts", "$200/month", "by end of week 2"). At least HALF of all tasks across the plan must include such a number.
+    4. Is completable in one sitting OR represents one ongoing weekly routine — never a vague life-long aspiration.
+    5. Is unambiguous: a stranger should know exactly what "done" looks like.
+    6. Is 6-16 words. No semicolons. Plain language, no emojis, no hashtags.
+
+  ============================================================
+  STEP 4 — WHAT TO AVOID (these are zero-information filler)
+  ============================================================
+  NEVER use these or close paraphrases. They are banned:
+    • "Research best practices"
+    • "Gather resources"
+    • "Define what success looks like"
+    • "Identify potential obstacles"
+    • "Set a realistic timeline"
+    • "Break the goal into mini-targets"
+    • "Tell a friend or accountability partner"
+    • "Track progress daily"
+    • "Overcome obstacles"
+    • "Reach the halfway milestone"
+    • "Push through the final stretch"
+    • "Celebrate and reward yourself"
+    • "Document lessons learned"
+    • "Stay consistent"
+    • "Believe in yourself"
+  If a task could apply equally to "learn piano" and "save for a car", rewrite it until it cannot.
+
+  ============================================================
+  STEP 5 — SAFETY / DISCLAIMERS
+  ============================================================
+  For medical, financial, legal, or mental-health goals, frame tasks around consulting a licensed professional (e.g. "Book a physical with your PCP and request a lipid panel") rather than prescribing dosages, specific medications, or specific securities. Never recommend rapid weight loss above ~1-2 lb/week, extreme caloric restriction, or anything that could cause harm.
+
+  ============================================================
+  STEP 6 — SELF-CHECK BEFORE RETURNING
+  ============================================================
+  Before emitting JSON, silently verify:
+    ✓ 4 phases, 3-4 tasks each, 12-16 total
+    ✓ Every task starts with a specific action verb
+    ✓ Domain-specific nouns appear throughout
+    ✓ ≥50% of tasks contain a number/frequency/threshold
+    ✓ No banned filler phrases
+    ✓ Plan reads like advice from a coach in that domain, not a generic motivation poster
+    ✓ Valid JSON, no trailing commas, no markdown wrapper
+
+  Return ONLY the JSON object.`;
+
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: [{
+            role: "user",
+            content: `My goal: ${goal}\n\nReturn the JSON plan now. Make every task concrete, domain-specific, and measurable per the rules above.`,
+          }],
+        }),
+      });
+      const data = await r.json();
+      const text = data.content[0].text;
+      const plan = JSON.parse(text);
+      return new Response(JSON.stringify(plan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  });
+  =====================================================================
+-->
+
+<div class="phone-frame">
+  <div class="phone-screen">
+
+    <!-- ============== HOME SCREEN ============== -->
+    <div class="screen active" id="screen-home">
+      <div class="screen-scroll">
+        <div class="home-screen-inner">
+          <div class="home-content">
+            <div class="app-logo">
+              <div class="app-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 12.5L10 17.5L19 7.5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="logo-text-block">
+                <div class="marker logo-title">Get ER Done</div>
+                <div class="logo-subtitle">Your Plan to Accomplish Anything</div>
+              </div>
+            </div>
+
+            <h1 class="marker goal-heading">What's your goal?</h1>
+            <div class="goal-sub">Be specific about what you are trying to do.</div>
+
+            <div class="input-wrap">
+              <input type="text" id="goal-input" class="goal-input" placeholder="I want to..." autocomplete="off" />
+              <button class="clear-btn" id="clear-btn" aria-label="Clear">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" fill="#B9B7B2"/>
+                  <path d="M8.5 8.5L15.5 15.5M15.5 8.5L8.5 15.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="chips" id="chips">
+              <button class="chip" data-text="Loose ten pounds">Loose ten pounds</button>
+              <button class="chip" data-text="Improve my financial savings">Improve my financial savings</button>
+              <button class="chip" data-text="Be more socially active">Be more socially active</button>
+              <button class="chip" data-text="Find a new career">Find a new career</button>
+            </div>
+          </div>
+
+          <div class="home-spacer"></div>
+
+          <div class="home-bottom">
+            <button class="cta-btn" id="create-plan-btn">Create Action Plan</button>
+            <div class="disclaimer-text">
+              Results are AI generated and not intended to be used as professional advice. Always seek the advice of an professional in any field such as medical or financial before taking action.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== ACTION PLAN SCREEN ============== -->
+    <div class="screen" id="screen-plan">
+      <div class="screen-scroll">
+        <div class="top-header">
+          <div class="marker top-title">Action Plan</div>
+          <button class="new-goal-btn" data-nav="home">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="#C4553B" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" fill="#C4553B"/>
+            </svg>
+            New Goal
+          </button>
+        </div>
+
+        <div class="ap-goal-card">
+          <div class="ap-goal-label">YOUR GOAL</div>
+          <div class="marker ap-goal-title" id="plan-goal-title">Launch a portfolio website</div>
+
+          <div class="ap-progress-row">
+            <div class="ap-progress-label">OVERALL PROGRESS</div>
+            <div class="ap-progress-pct" id="plan-pct">0%</div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="plan-fill"></div>
+          </div>
+          <div class="ap-tasks-done" id="plan-tasks-done">0 of 0 tasks done</div>
+          <div class="ap-phases" id="plan-phases"></div>
+        </div>
+
+        <div id="phases-container"></div>
+
+        <div class="save-plan-wrap">
+          <button class="save-plan-btn" id="save-plan-btn">Save Plan</button>
+        </div>
+      </div>
+
+      <!-- Loading overlay (within the action plan screen) -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="pulse-dot"></div>
+        <div class="marker loading-title" id="loading-title">Creating your action plan...</div>
+        <div class="loading-goal" id="loading-goal"></div>
+        <div class="loading-error-actions">
+          <button class="modal-btn primary" id="loading-retry">Try Again</button>
+          <button class="modal-btn secondary" id="loading-back-home">Back to Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== SAVED PLANS SCREEN ============== -->
+    <div class="screen" id="screen-saved">
+      <div class="screen-scroll">
+        <div class="top-header">
+          <div class="marker top-title">Saved Plans</div>
+          <button class="new-goal-btn" data-nav="home">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="#C4553B" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" fill="#C4553B"/>
+            </svg>
+            New Goal
+          </button>
+        </div>
+        <div class="sp-list" id="saved-list"></div>
+      </div>
+    </div>
+
+    <!-- ============== DELETE MODAL ============== -->
+    <div class="modal-backdrop" id="delete-modal">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div class="marker modal-title" id="delete-modal-title">Delete</div>
+        <div class="modal-body">Deleting a plan is permenant and cannot be undone.</div>
+        <button class="modal-delete-btn" id="confirm-delete-btn">Delete Plan</button>
+      </div>
+    </div>
+
+    <!-- ============== BOTTOM NAV ============== -->
+    <div class="bottom-nav">
+      <button class="nav-tab active" data-nav="home">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 11L12 3.5L21 11V20C21 20.55 20.55 21 20 21H15V14H9V21H4C3.45 21 3 20.55 3 20V11Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="label">Home</span>
+      </button>
+      <button class="nav-tab" data-nav="plan">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 6H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M9 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M9 18H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M3 6L4.5 7.5L7 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 12L4.5 13.5L7 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 18L4.5 19.5L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="label">Action Plan</span>
+      </button>
+      <button class="nav-tab" data-nav="saved">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <path d="M12 8V14M12 14L9.5 11.5M12 14L14.5 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 17H16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="label">Saved Plans</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ===========================================================
+   SVG icon templates
+   =========================================================== */
+const ICON_CHECK_WHITE = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12L10 17L19 8" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z" fill="#B9B7B2"/><path d="M20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#B9B7B2"/></svg>';
+const ICON_PLUS_CIRCLE = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="#C4553B" stroke-width="2"/><path d="M12 8V16M8 12H16" stroke="#C4553B" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 7H18M9 7V5C9 4.45 9.45 4 10 4H14C14.55 4 15 4.45 15 5V7M7 7L7.7 19C7.74 19.55 8.19 20 8.74 20H15.26C15.81 20 16.26 19.55 16.3 19L17 7" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11V17M14 11V17" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_CHEVRON_RIGHT = '<svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 2L8 6L4 10" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ===========================================================
+   In-memory state
+   =========================================================== */
+let nextPlanId = 1;
+let nextTaskId = 1;
+const state = {
+  currentPlan: null,        // active plan being viewed/edited
+  savedPlans: [],           // array of saved plans
+  currentScreen: 'home',
+};
+
+/* ===========================================================
+   AI configuration — Claude via Supabase Edge Function.
+   ===========================================================
+   Hardcoded for zero-config sharing. Anyone who opens the
+   prototype gets real Claude-generated plans with no setup.
+
+   The Anthropic key lives server-side in the Supabase secret
+   CLAUDE_CODE_AI_KEY. There is NO browser-side API key and
+   NO template fallback.
+*/
+
+const SUPABASE_FUNCTION_URL = 'https://uhyvwwnnckhscunxizqf.supabase.co/functions/v1/generate-plan';
+
+const SYSTEM_PROMPT = `You are "Get Er Done", an expert personal action-planning coach. A user gives you ONE goal in their own words. You return a tightly structured, concrete 4-phase action plan as raw JSON.
+
+OUTPUT CONTRACT (return ONLY this — no prose, no markdown, no code fences)
+{
+  "goal": "<echo the user's goal, cleaned up to a clear sentence>",
+  "phases": [
+    { "title": "<2-4 word phase title>", "tasks": ["<task>", "<task>", "<task>", "<task>"] },
+    { "title": "...", "tasks": ["...", "...", "...", "..."] },
+    { "title": "...", "tasks": ["...", "...", "...", "..."] },
+    { "title": "...", "tasks": ["...", "...", "...", "..."] }
+  ]
+}
+Exactly 4 phases. Each phase has 3-4 tasks (prefer 4). Total tasks: 12-16.
+
+STEP 1 — CLASSIFY THE GOAL'S DOMAIN
+Silently pick the closest domain before writing tasks. Use the domain's specific vocabulary, tools, and steps:
+  • Fitness / weight loss / strength / running / sport
+  • Nutrition / cooking / diet
+  • Personal finance / savings / debt / investing / budgeting
+  • Career / job search / promotion / career change
+  • Education / learning a skill / language / certification
+  • Creative project / writing / music / art / portfolio
+  • Software / building an app / website / product launch
+  • Business / startup / side hustle / freelance
+  • Relationships / social / dating / networking / community
+  • Mental health / habits / sleep / mindfulness / stress
+  • Home / move / renovation / declutter / garden
+  • Travel / trip planning / relocation
+  • Health / medical / quit smoking / sobriety
+If the goal mixes domains, choose the dominant one and reflect the others within tasks.
+
+STEP 2 — PHASE STRUCTURE
+The 4 phases must form a credible sequential arc tailored to that domain. Default arc:
+  Phase 1: Clarify & Assess  — define the target, measure the starting point, gather constraints
+  Phase 2: Set Up & Prepare  — pick tools/resources, design the system, remove friction
+  Phase 3: Execute & Build Momentum — the actual doing, with concrete weekly/numeric checkpoints
+  Phase 4: Push Through & Lock It In — finish, verify outcome, sustain or celebrate
+You may rename phases (e.g. "Baseline", "Build the Habit", "Scale Up", "Stick the Landing") to fit the domain — but each phase must clearly differ from the others.
+
+STEP 3 — TASK QUALITY RULES (the most important section)
+Every task MUST satisfy ALL of these:
+  1. Starts with a strong, specific action verb (e.g. "Measure", "Calendar", "Cook", "Email", "Open", "Draft", "Calculate", "Schedule", "Cancel", "Record"). NEVER start with vague verbs like "Work on", "Focus on", "Think about", "Consider", "Try to", "Get".
+  2. Names a CONCRETE artifact, tool, person-type, place, or number whenever plausible. Use the actual nouns of the domain. Examples:
+     — fitness: "barbell back squat", "Zone 2 heart rate", "30g protein", "Strava", "MyFitnessPal"
+     — finance: "high-yield savings account (4%+ APY)", "401(k) match", "Empower budget", "credit utilization under 30%"
+     — career: "LinkedIn headline", "resume STAR bullets", "informational coffee chat", "Greenhouse", "leetcode mediums"
+     — cooking: "60-second sear per side", "internal temp 130°F", "cast iron skillet", "rest 8 minutes"
+     — language: "Anki deck", "300 most-common words", "iTalki tutor", "B1 listening podcast"
+  3. Includes a measurable number, frequency, duration, or threshold when it fits (e.g. "3x per week", "for 20 minutes", "5 contacts", "$200/month", "by end of week 2"). At least HALF of all tasks across the plan must include such a number.
+  4. Is completable in one sitting OR represents one ongoing weekly routine — never a vague life-long aspiration.
+  5. Is unambiguous: a stranger should know exactly what "done" looks like.
+  6. Is 6-16 words. No semicolons. Plain language, no emojis, no hashtags.
+
+STEP 4 — WHAT TO AVOID (these are zero-information filler)
+NEVER use these or close paraphrases. They are banned:
+  • "Research best practices"
+  • "Gather resources"
+  • "Define what success looks like"
+  • "Identify potential obstacles"
+  • "Set a realistic timeline"
+  • "Break the goal into mini-targets"
+  • "Tell a friend or accountability partner"
+  • "Track progress daily"
+  • "Overcome obstacles"
+  • "Reach the halfway milestone"
+  • "Push through the final stretch"
+  • "Celebrate and reward yourself"
+  • "Document lessons learned"
+  • "Stay consistent"
+  • "Believe in yourself"
+If a task could apply equally to "learn piano" and "save for a car", rewrite it until it cannot.
+
+STEP 5 — SAFETY / DISCLAIMERS
+For medical, financial, legal, or mental-health goals, frame tasks around consulting a licensed professional rather than prescribing dosages, specific medications, or specific securities. Never recommend rapid weight loss above ~1-2 lb/week, extreme caloric restriction, or anything that could cause harm.
+
+STEP 6 — SELF-CHECK BEFORE RETURNING
+Before emitting JSON, silently verify:
+  ✓ 4 phases, 3-4 tasks each, 12-16 total
+  ✓ Every task starts with a specific action verb
+  ✓ Domain-specific nouns appear throughout
+  ✓ ≥50% of tasks contain a number/frequency/threshold
+  ✓ No banned filler phrases
+  ✓ Plan reads like advice from a coach in that domain, not a generic motivation poster
+  ✓ Valid JSON, no trailing commas, no markdown wrapper
+
+Return ONLY the JSON object.`;
+
+class AIError extends Error {
+  constructor(message, kind) { super(message); this.kind = kind; }
+}
+
+/* ===========================================================
+   AI plan fetch — ALWAYS calls Claude through Supabase
+   =========================================================== */
+async function generatePlan(goal) {
+  const r = await fetch(SUPABASE_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ goal }),
+  });
+  if (!r.ok) {
+    const errText = await r.text();
+    throw new AIError(`Claude API error ${r.status}: ${errText.slice(0, 200)}`, 'API_ERROR');
+  }
+  const plan = await r.json();
+  if (!plan || !Array.isArray(plan.phases) || plan.phases.length !== 4) {
+    throw new AIError('Claude returned an invalid plan shape.', 'INVALID_RESPONSE');
+  }
+  return plan;
+}
+
+function parsePlanJson(text) {
+  // Strip code fences if Claude included them despite instructions
+  let cleaned = text.trim();
+  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fenceMatch) cleaned = fenceMatch[1].trim();
+  // Find first { and last } for safety
+  const first = cleaned.indexOf('{');
+  const last = cleaned.lastIndexOf('}');
+  if (first !== -1 && last !== -1) cleaned = cleaned.slice(first, last + 1);
+
+  let plan;
+  try { plan = JSON.parse(cleaned); }
+  catch (e) { throw new AIError('Could not parse plan JSON from Claude.', 'PARSE_ERROR'); }
+
+  if (!plan.phases || !Array.isArray(plan.phases) || plan.phases.length !== 4) {
+    throw new AIError('Claude returned a plan without 4 phases.', 'INVALID_RESPONSE');
+  }
+  for (const p of plan.phases) {
+    if (!p.title || !Array.isArray(p.tasks) || p.tasks.length < 3) {
+      throw new AIError('Claude returned phases without enough tasks.', 'INVALID_RESPONSE');
+    }
+  }
+  return plan;
+}
+
+/* ===========================================================
+   Plan model helpers
+   =========================================================== */
+function planFromApiResponse(apiPlan) {
+  return {
+    id: nextPlanId++,
+    goal: apiPlan.goal,
+    phases: apiPlan.phases.map((p) => ({
+      title: p.title,
+      tasks: p.tasks.map((t) => ({
+        id: nextTaskId++,
+        text: t,
+        done: false,
+      })),
+    })),
+  };
+}
+
+function planStats(plan) {
+  let total = 0, done = 0;
+  for (const p of plan.phases) {
+    for (const t of p.tasks) {
+      total++;
+      if (t.done) done++;
+    }
+  }
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  return { total, done, pct };
+}
+
+function phaseStats(phase) {
+  const total = phase.tasks.length;
+  const done = phase.tasks.filter((t) => t.done).length;
+  return { total, done, pct: total === 0 ? 0 : (done / total) * 100 };
+}
+
+/* ===========================================================
+   Render: Action Plan screen
+   =========================================================== */
+function renderActionPlan() {
+  const plan = state.currentPlan;
+  if (!plan) return;
+
+  document.getElementById('plan-goal-title').textContent = plan.goal;
+
+  const stats = planStats(plan);
+  document.getElementById('plan-pct').textContent = `${stats.pct}%`;
+  document.getElementById('plan-fill').style.width = `${stats.pct}%`;
+  document.getElementById('plan-tasks-done').textContent = `${stats.done} of ${stats.total} tasks done`;
+
+  // Mini phase bars
+  const phasesEl = document.getElementById('plan-phases');
+  phasesEl.innerHTML = '';
+  plan.phases.forEach((p, i) => {
+    const ps = phaseStats(p);
+    const mini = document.createElement('div');
+    mini.className = 'ap-phase-mini';
+    mini.innerHTML = `
+      <div class="mini-track"><div class="mini-fill" style="width:${ps.pct}%"></div></div>
+      <div class="mini-label">Phase ${i + 1}</div>
+    `;
+    phasesEl.appendChild(mini);
+  });
+
+  // Phase task cards
+  const container = document.getElementById('phases-container');
+  container.innerHTML = '';
+  plan.phases.forEach((phase, phaseIdx) => {
+    const block = document.createElement('div');
+    block.className = 'phase-block';
+    block.innerHTML = `
+      <div class="phase-header">
+        <div class="phase-label">PHASE ${phaseIdx + 1} - ${phase.title}</div>
+        <button class="add-task-btn" data-phase="${phaseIdx}">${ICON_PLUS_CIRCLE} Task</button>
+      </div>
+      <div class="task-card" id="phase-card-${phaseIdx}"></div>
+    `;
+    container.appendChild(block);
+
+    const card = block.querySelector(`#phase-card-${phaseIdx}`);
+    phase.tasks.forEach((task, taskIdx) => {
+      card.appendChild(buildTaskRow(task, phaseIdx, taskIdx));
+    });
+  });
+
+  // Wire up add-task buttons
+  container.querySelectorAll('.add-task-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const phaseIdx = parseInt(btn.dataset.phase, 10);
+      plan.phases[phaseIdx].tasks.push({
+        id: nextTaskId++,
+        text: 'New task',
+        done: false,
+      });
+      renderActionPlan();
+    });
+  });
+}
+
+function buildTaskRow(task, phaseIdx, taskIdx) {
+  const row = document.createElement('div');
+  row.className = 'task-row';
+  row.innerHTML = `
+    <button class="checkbox ${task.done ? 'checked' : ''}" aria-label="Toggle">${ICON_CHECK_WHITE}</button>
+    <input class="task-text ${task.done ? 'done' : ''}" value="" />
+    <button class="edit-btn" aria-label="Edit">${ICON_PENCIL}</button>
+  `;
+  const input = row.querySelector('.task-text');
+  input.value = task.text;
+
+  // Toggle done
+  row.querySelector('.checkbox').addEventListener('click', () => {
+    task.done = !task.done;
+    renderActionPlan();
+  });
+
+  // Edit text
+  input.addEventListener('input', (e) => {
+    task.text = e.target.value;
+  });
+
+  // Pencil focuses input
+  row.querySelector('.edit-btn').addEventListener('click', () => {
+    input.focus();
+    input.select();
+  });
+
+  return row;
+}
+
+/* ===========================================================
+   Render: Saved Plans screen
+   =========================================================== */
+function renderSavedPlans() {
+  const list = document.getElementById('saved-list');
+  list.innerHTML = '';
+
+  if (state.savedPlans.length === 0) {
+    list.innerHTML = `<div class="sp-empty">No saved plans yet.<br/>Create your first goal!</div>`;
+    return;
+  }
+
+  state.savedPlans.forEach((plan) => {
+    const stats = planStats(plan);
+    const card = document.createElement('div');
+    card.className = 'sp-card';
+    card.innerHTML = `
+      <div class="sp-info">
+        <div class="marker sp-title"></div>
+        <div class="sp-meta">${stats.done}/${stats.total} Tasks Complete</div>
+      </div>
+      <button class="sp-trash" aria-label="Delete">${ICON_TRASH}</button>
+      <button class="sp-chevron" aria-label="Open">${ICON_CHEVRON_RIGHT}</button>
+    `;
+    card.querySelector('.sp-title').textContent = plan.goal;
+
+    // Open plan
+    const open = () => {
+      state.currentPlan = clonePlan(plan);
+      renderActionPlan();
+      navigate('plan');
+    };
+    card.querySelector('.sp-info').addEventListener('click', open);
+    card.querySelector('.sp-chevron').addEventListener('click', (e) => {
+      e.stopPropagation();
+      open();
+    });
+
+    // Delete (open confirmation modal first)
+    card.querySelector('.sp-trash').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDeleteModal(plan.id);
+    });
+
+    list.appendChild(card);
+  });
+}
+
+function clonePlan(plan) {
+  return {
+    id: plan.id,
+    goal: plan.goal,
+    phases: plan.phases.map((p) => ({
+      title: p.title,
+      tasks: p.tasks.map((t) => ({ id: t.id, text: t.text, done: t.done })),
+    })),
+  };
+}
+
+/* ===========================================================
+   Navigation
+   =========================================================== */
+function navigate(screen) {
+  state.currentScreen = screen;
+  document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'));
+  document.getElementById(`screen-${screen}`).classList.add('active');
+
+  document.querySelectorAll('.nav-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.nav === screen);
+  });
+
+  // Scroll to top when switching
+  const scrollEl = document.querySelector(`#screen-${screen} .screen-scroll`);
+  if (scrollEl) scrollEl.scrollTop = 0;
+}
+
+document.querySelectorAll('[data-nav]').forEach((el) => {
+  el.addEventListener('click', () => {
+    const target = el.dataset.nav;
+    if (target === 'plan' && !state.currentPlan) {
+      // Nothing to show — bounce to home
+      navigate('home');
+      return;
+    }
+    navigate(target);
+  });
+});
+
+/* ===========================================================
+   Home interactions
+   =========================================================== */
+const goalInput = document.getElementById('goal-input');
+const clearBtn = document.getElementById('clear-btn');
+const createBtn = document.getElementById('create-plan-btn');
+
+document.querySelectorAll('#chips .chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    goalInput.value = chip.dataset.text;
+    goalInput.focus();
+  });
+});
+
+clearBtn.addEventListener('click', () => {
+  goalInput.value = '';
+  goalInput.focus();
+});
+
+createBtn.addEventListener('click', async () => {
+  const goal = goalInput.value.trim();
+  if (!goal) {
+    goalInput.focus();
+    return;
+  }
+
+  // Switch to Action Plan screen, show loading overlay in "loading" state
+  navigate('plan');
+  const overlay = document.getElementById('loading-overlay');
+  const title = document.getElementById('loading-title');
+  const goalEl = document.getElementById('loading-goal');
+  overlay.classList.remove('error');
+  title.textContent = 'Creating your action plan...';
+  goalEl.textContent = goal;
+  overlay.classList.add('active');
+
+  try {
+    const apiPlan = await generatePlan(goal);
+    // Always preserve the user's exact typed goal — never let the AI rewrite it
+    apiPlan.goal = goal;
+    state.currentPlan = planFromApiResponse(apiPlan);
+    renderActionPlan();
+    overlay.classList.remove('active');
+  } catch (err) {
+    overlay.classList.add('error');
+    title.textContent = 'Plan generation failed';
+    goalEl.textContent = (err && err.message) ? err.message : 'Unknown error calling Claude. Try again.';
+  }
+});
+
+goalInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') createBtn.click();
+});
+
+/* ===========================================================
+   Save plan
+   =========================================================== */
+document.getElementById('save-plan-btn').addEventListener('click', () => {
+  if (!state.currentPlan) return;
+  const snapshot = clonePlan(state.currentPlan);
+  snapshot.savedAt = Date.now();
+
+  // If a plan with the same goal already exists, update it in place.
+  // Otherwise, add it as a new entry at the top of the list.
+  const normalize = (s) => s.trim().toLowerCase();
+  const existingIdx = state.savedPlans.findIndex(
+    (p) => normalize(p.goal) === normalize(snapshot.goal)
+  );
+
+  if (existingIdx >= 0) {
+    snapshot.id = state.savedPlans[existingIdx].id;
+    state.savedPlans[existingIdx] = snapshot;
+  } else {
+    snapshot.id = nextPlanId++;
+    state.savedPlans.unshift(snapshot);
+  }
+
+  renderSavedPlans();
+  navigate('saved');
+});
+
+/* ===========================================================
+   Loading overlay error actions
+   =========================================================== */
+document.getElementById('loading-retry').addEventListener('click', () => {
+  document.getElementById('loading-overlay').classList.remove('active');
+  createBtn.click();
+});
+document.getElementById('loading-back-home').addEventListener('click', () => {
+  document.getElementById('loading-overlay').classList.remove('active');
+  navigate('home');
+});
+
+/* ===========================================================
+   Delete confirmation modal
+   =========================================================== */
+const deleteModal = document.getElementById('delete-modal');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+let pendingDeleteId = null;
+
+function openDeleteModal(planId) {
+  pendingDeleteId = planId;
+  deleteModal.classList.add('active');
+}
+
+function closeDeleteModal() {
+  pendingDeleteId = null;
+  deleteModal.classList.remove('active');
+}
+
+confirmDeleteBtn.addEventListener('click', () => {
+  if (pendingDeleteId == null) return;
+  state.savedPlans = state.savedPlans.filter((p) => p.id !== pendingDeleteId);
+  renderSavedPlans();
+  closeDeleteModal();
+});
+
+deleteModal.addEventListener('click', (e) => {
+  if (e.target === deleteModal) closeDeleteModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && deleteModal.classList.contains('active')) {
+    closeDeleteModal();
+  }
+});
+
+/* ===========================================================
+   Initial render
+   =========================================================== */
+renderSavedPlans();
+</script>
+</body>
+</html>
