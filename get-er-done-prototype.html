@@ -768,11 +768,16 @@
   .modal-delete-btn:hover { background: #b04a32; }
   .modal-delete-btn:active { transform: translateY(1px); }
 
-  @media (max-width: 480px) {
-    body { padding: 0; }
+  /* ── Mobile: any touch device up to tablet width ── */
+  @media (max-width: 768px) {
+    body {
+      padding: 0;
+      align-items: stretch;
+      justify-content: stretch;
+    }
     .phone-frame {
       width: 100vw;
-      height: 100vh;
+      height: 100dvh; /* dvh = dynamic viewport: shrinks when browser chrome shows */
       border-radius: 0;
       padding: 0;
       box-shadow: none;
@@ -782,6 +787,38 @@
       width: 100%;
       height: 100%;
       border-radius: 0;
+    }
+
+    /* Content fills full width — no fixed px widths */
+    .home-content    { padding: min(10vw, 82px) 5vw 0; }
+    .top-header      { padding: min(6vw, 24px) 5vw min(3.5vw, 14px); }
+    .screen-scroll   { padding-left: 0; padding-right: 0; }
+
+    /* Logo scales with viewport */
+    .logo-title      { font-size: clamp(24px, 7vw, 34px); }
+    .goal-heading    { font-size: clamp(26px, 8vw, 36px); }
+
+    /* Input, buttons, chips — full fluid width */
+    .goal-input,
+    .cta-btn,
+    .save-plan-btn   { width: 100%; }
+
+    /* Chips container — let it grow if content is taller */
+    .chips           { height: auto; min-height: 80px; }
+
+    /* Saved plans cards — fill width */
+    .sp-card         { width: 100%; }
+
+    /* Task card padding */
+    .task-card       { margin: 0 5vw; }
+    .phase-header    { padding: 0 5vw; }
+    .save-plan-wrap  { padding: 18px 5vw 8px; }
+
+    /* Bottom nav — full width, no clipping */
+    .bottom-nav {
+      left: 0;
+      right: 0;
+      width: 100%;
     }
   }
 
