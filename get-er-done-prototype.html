@@ -417,22 +417,17 @@
   .checkbox.checked svg { opacity: 1; }
   .task-text {
     flex: 1;
-    margin: 0;
+    min-width: 0;
     font-size: 14px;
     color: #1C1A17;
-    background: transparent;
-    border: none;
-    outline: none;
     font-family: 'Open Sans', sans-serif;
-    transition: color 200ms ease;
-    padding: 0;
-    word-break: break-word;
-    resize: none;
-    overflow: hidden;
-    line-height: 1.45;
+    font-weight: 400;
+    line-height: 1.5;
     letter-spacing: -0.15px;
-    min-width: 0;
-    display: block;
+    word-break: break-word;
+    white-space: normal;
+    outline: none;
+    cursor: text;
   }
   .task-text.done {
     text-decoration: line-through;
@@ -1357,41 +1352,63 @@ function renderActionPlan() {
   });
 }
 
-function autoResizeTextarea(ta) {
-  ta.style.height = 'auto';
-  ta.style.height = ta.scrollHeight + 'px';
-}
-
 function buildTaskRow(task, phaseIdx, taskIdx) {
   const row = document.createElement('div');
   row.className = 'task-row';
-  row.innerHTML = `
-    <button class="checkbox ${task.done ? 'checked' : ''}" aria-label="Toggle" style="flex-shrink:0;align-self:center;">${ICON_CHECK_WHITE}</button>
-    <textarea class="task-text ${task.done ? 'done' : ''}" rows="1"></textarea>
-    <button class="edit-btn" aria-label="Edit" style="flex-shrink:0;align-self:center;">${ICON_PENCIL}</button>
-  `;
-  const ta = row.querySelector('.task-text');
-  ta.value = task.text;
 
-  // Size to content immediately after insert
-  requestAnimationFrame(() => autoResizeTextarea(ta));
+  // Checkbox
+  const checkbox = document.createElement('button');
+  checkbox.className = 'checkbox' + (task.done ? ' checked' : '');
+  checkbox.setAttribute('aria-label', 'Toggle');
+  checkbox.style.cssText = 'flex-shrink:0; align-self:center;';
+  checkbox.innerHTML = ICON_CHECK_WHITE;
+
+  // Task text — contenteditable div wraps naturally, no height math needed
+  const textEl = document.createElement('div');
+  textEl.className = 'task-text' + (task.done ? ' done' : '');
+  textEl.contentEditable = 'true';
+  textEl.textContent = task.text;
+
+  // Edit button
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-btn';
+  editBtn.setAttribute('aria-label', 'Edit');
+  editBtn.style.cssText = 'flex-shrink:0; align-self:center;';
+  editBtn.innerHTML = ICON_PENCIL;
+
+  row.appendChild(checkbox);
+  row.appendChild(textEl);
+  row.appendChild(editBtn);
 
   // Toggle done
-  row.querySelector('.checkbox').addEventListener('click', () => {
+  checkbox.addEventListener('click', () => {
     task.done = !task.done;
     renderActionPlan();
   });
 
-  // Edit text + auto-resize
-  ta.addEventListener('input', (e) => {
-    task.text = e.target.value;
-    autoResizeTextarea(ta);
+  // Sync edits back to state
+  textEl.addEventListener('input', () => {
+    task.text = textEl.textContent;
   });
 
-  // Pencil focuses textarea
-  row.querySelector('.edit-btn').addEventListener('click', () => {
-    ta.focus();
-    ta.setSelectionRange(ta.value.length, ta.value.length);
+  // Prevent newlines on Enter — keep it single-paragraph
+  textEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      textEl.blur();
+    }
+  });
+
+  // Pencil focuses the text
+  editBtn.addEventListener('click', () => {
+    textEl.focus();
+    // Move cursor to end
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(textEl);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
   });
 
   return row;
