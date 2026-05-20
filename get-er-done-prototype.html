@@ -784,9 +784,57 @@
       border-radius: 0;
     }
   }
+
+  /* ── Landscape lock overlay ── */
+  .rotate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #EDE8DC;
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 32px;
+  }
+  .rotate-overlay svg {
+    width: 64px;
+    height: 64px;
+    color: #C4553B;
+    animation: rotate-hint 1.8s ease-in-out infinite;
+  }
+  @keyframes rotate-hint {
+    0%   { transform: rotate(0deg); }
+    40%  { transform: rotate(-90deg); }
+    60%  { transform: rotate(-90deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .rotate-overlay p {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1C1A17;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  @media (orientation: landscape) and (max-height: 480px) {
+    .rotate-overlay { display: flex; }
+  }
 </style>
 </head>
 <body>
+
+<!-- Landscape lock overlay — shown via CSS when orientation: landscape -->
+<div class="rotate-overlay" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="2" width="10" height="16" rx="2"/>
+    <path d="M17 8l3 3-3 3"/>
+    <path d="M20 11H13"/>
+  </svg>
+  <p>Please rotate your device<br>back to portrait mode</p>
+</div>
 
 <!--
   =====================================================================
