@@ -95,13 +95,12 @@
 
   /* ==================== HOME SCREEN ==================== */
   .home-content {
-    padding: 24px 24px 0;
+    padding: 82px 24px 0;
   }
   .app-logo {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-top: 8px;
   }
   .app-icon {
     width: 46px;
@@ -117,29 +116,32 @@
   .logo-text-block {
     display: flex;
     flex-direction: column;
-    line-height: 1;
+    gap: 2px;
   }
   .logo-title {
     font-size: 30px;
     line-height: 1.1;
-    letter-spacing: 1px;
+    letter-spacing: -0.3px;
   }
   .logo-subtitle {
-    font-size: 13px;
-    margin-top: 6px;
+    font-size: 12px;
     color: rgba(28, 26, 23, 0.75);
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
   }
   .logo-subtitle em { font-style: italic; font-weight: 700; }
 
   .goal-heading {
-    margin-top: 84px;
-    font-size: 34px;
-    line-height: 1.15;
+    margin-top: 40px;
+    font-size: 32px;
+    line-height: 38px;
+    letter-spacing: -0.4px;
   }
   .goal-sub {
-    margin-top: 10px;
+    margin-top: 8px;
     font-size: 14px;
-    color: rgba(28, 26, 23, 0.75);
+    line-height: 20px;
+    color: rgba(28, 26, 23, 0.55);
   }
 
   .input-wrap {
@@ -148,15 +150,16 @@
   }
   .goal-input {
     width: 100%;
-    height: 56px;
     background: #FDFAF5;
     border: 1.5px solid #C4553B;
-    border-radius: 13px;
-    padding: 0 48px 0 18px;
-    font-size: 16px;
+    border-radius: 14px;
+    padding: 16px 48px 16px 18px;
+    font-size: 14px;
+    line-height: 22px;
     color: #1C1A17;
     font-family: inherit;
     outline: none;
+    box-sizing: border-box;
   }
   .goal-input::placeholder {
     color: rgba(28, 26, 23, 0.55);
@@ -179,22 +182,26 @@
   .clear-btn svg { width: 20px; height: 20px; }
 
   .chips {
-    margin-top: 22px;
+    margin-top: 24px;
     display: flex;
     flex-wrap: wrap;
     gap: 12px 16px;
+    height: 95px;
+    overflow: hidden;
+    align-content: flex-start;
+    filter: drop-shadow(0px 4px 8px rgba(196, 85, 59, 0.25));
   }
   .chip {
     height: 32px;
-    padding: 0 14px;
+    padding: 0 11px;
     border: 1px solid rgba(196, 85, 59, 0.8);
-    border-radius: 15.5px;
+    border-radius: 100px;
     background: transparent;
-    color: rgba(196, 85, 59, 0.95);
-    font-size: 13px;
-    font-weight: 600;
+    color: rgba(196, 85, 59, 0.8);
+    font-size: 12px;
+    font-weight: 700;
     cursor: pointer;
-    font-family: inherit;
+    font-family: 'Open Sans', sans-serif;
     transition: background 150ms ease, transform 100ms ease;
     white-space: nowrap;
   }
@@ -956,7 +963,7 @@
               </div>
               <div class="logo-text-block">
                 <div class="marker logo-title">Get ER Done</div>
-                <div class="logo-subtitle">Your Plan to Accomplish Anything</div>
+                <div class="logo-subtitle">Do More - <em>Faster</em></div>
               </div>
             </div>
 
