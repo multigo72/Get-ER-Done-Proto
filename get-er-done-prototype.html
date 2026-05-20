@@ -389,8 +389,9 @@
   .task-row {
     display: flex;
     align-items: center;
+    gap: 12px;
     padding: 13px 16px;
-    border-top: 1px solid rgba(28, 26, 23, 0.04);
+    border-top: 0.5px solid rgba(28, 26, 23, 0.1);
     min-height: 48px;
   }
   .task-row:first-child { border-top: none; }
@@ -416,20 +417,26 @@
   .checkbox.checked svg { opacity: 1; }
   .task-text {
     flex: 1;
-    margin: 0 14px;
-    font-size: 15px;
+    margin: 0;
+    font-size: 14px;
     color: #1C1A17;
     background: transparent;
     border: none;
     outline: none;
-    font-family: inherit;
+    font-family: 'Open Sans', sans-serif;
     transition: color 200ms ease;
-    padding: 4px 0;
+    padding: 0;
     word-break: break-word;
+    resize: none;
+    overflow: hidden;
+    line-height: 1.45;
+    letter-spacing: -0.15px;
+    min-width: 0;
+    display: block;
   }
   .task-text.done {
     text-decoration: line-through;
-    color: rgba(28, 26, 23, 0.45);
+    color: rgba(28, 26, 23, 0.3);
   }
   .edit-btn {
     background: transparent;
@@ -1350,16 +1357,24 @@ function renderActionPlan() {
   });
 }
 
+function autoResizeTextarea(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
 function buildTaskRow(task, phaseIdx, taskIdx) {
   const row = document.createElement('div');
   row.className = 'task-row';
   row.innerHTML = `
-    <button class="checkbox ${task.done ? 'checked' : ''}" aria-label="Toggle">${ICON_CHECK_WHITE}</button>
-    <input class="task-text ${task.done ? 'done' : ''}" value="" />
-    <button class="edit-btn" aria-label="Edit">${ICON_PENCIL}</button>
+    <button class="checkbox ${task.done ? 'checked' : ''}" aria-label="Toggle" style="flex-shrink:0;align-self:center;">${ICON_CHECK_WHITE}</button>
+    <textarea class="task-text ${task.done ? 'done' : ''}" rows="1"></textarea>
+    <button class="edit-btn" aria-label="Edit" style="flex-shrink:0;align-self:center;">${ICON_PENCIL}</button>
   `;
-  const input = row.querySelector('.task-text');
-  input.value = task.text;
+  const ta = row.querySelector('.task-text');
+  ta.value = task.text;
+
+  // Size to content immediately after insert
+  requestAnimationFrame(() => autoResizeTextarea(ta));
 
   // Toggle done
   row.querySelector('.checkbox').addEventListener('click', () => {
@@ -1367,15 +1382,16 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
     renderActionPlan();
   });
 
-  // Edit text
-  input.addEventListener('input', (e) => {
+  // Edit text + auto-resize
+  ta.addEventListener('input', (e) => {
     task.text = e.target.value;
+    autoResizeTextarea(ta);
   });
 
-  // Pencil focuses input
+  // Pencil focuses textarea
   row.querySelector('.edit-btn').addEventListener('click', () => {
-    input.focus();
-    input.select();
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
   });
 
   return row;
