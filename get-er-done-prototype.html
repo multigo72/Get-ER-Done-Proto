@@ -1690,17 +1690,20 @@ function savePlan(plan, andNavigate = false) {
   if (!plan) return;
   const snapshot = clonePlan(plan);
   snapshot.savedAt = Date.now();
-  const normalize = (s) => s.trim().toLowerCase();
-  const existingIdx = state.savedPlans.findIndex(
-    (p) => normalize(p.goal) === normalize(snapshot.goal)
-  );
-  if (existingIdx >= 0) {
-    snapshot.id = state.savedPlans[existingIdx].id;
-    state.savedPlans[existingIdx] = snapshot;
-  } else {
-    snapshot.id = nextPlanId++;
-    state.savedPlans.unshift(snapshot);
+  const norm = (s) => s.trim().toLowerCase();
+
+  // If the same title already exists, append the next available number
+  const baseGoal = snapshot.goal;
+  if (state.savedPlans.some(p => norm(p.goal) === norm(baseGoal))) {
+    let num = 2;
+    while (state.savedPlans.some(p => norm(p.goal) === norm(`${baseGoal} ${num}`))) {
+      num++;
+    }
+    snapshot.goal = `${baseGoal} ${num}`;
   }
+
+  snapshot.id = nextPlanId++;
+  state.savedPlans.unshift(snapshot);
   renderSavedPlans();
   if (andNavigate) navigate('saved');
 }
