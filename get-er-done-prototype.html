@@ -205,6 +205,22 @@
     margin-top: auto;
     padding: 0 24px 24px;
   }
+  /* Safety warning */
+  .safety-warning {
+    display: none;
+    margin: 10px 0 0;
+    padding: 12px 14px;
+    background: #FFF3F1;
+    border: 1px solid #C4553B;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #1C1A17;
+    line-height: 1.5;
+    font-family: 'Open Sans', sans-serif;
+  }
+  .safety-warning.visible { display: block; }
+  .safety-warning strong { color: #C4553B; }
+
   .cta-btn {
     width: 100%;
     height: 50px;
@@ -956,6 +972,10 @@
                 </svg>
               </button>
             </div>
+            <div class="safety-warning" id="safety-warning" role="alert">
+              <strong>⚠️ Your goal was blocked by our safety filters.</strong><br>
+              The goal or plan you entered contains language that doesn't meet our community guidelines. Please rewrite your goal using respectful, constructive language and try again.
+            </div>
 
             <div class="chips" id="chips">
               <button class="chip" data-text="Loose ten pounds">Loose ten pounds</button>
@@ -1503,11 +1523,95 @@ document.querySelectorAll('[data-nav]').forEach((el) => {
 });
 
 /* ===========================================================
+   Content Safety Filter
+   =========================================================== */
+function containsBlockedContent(rawText) {
+  const text = rawText.toLowerCase().trim();
+
+  // Deobfuscated version for Cat 2 & 6 (symbols → letters)
+  const deob = text
+    .replace(/@/g,'a').replace(/0/g,'o').replace(/3/g,'e')
+    .replace(/1/g,'i').replace(/!/g,'i').replace(/\$/g,'s')
+    .replace(/4/g,'a').replace(/5/g,'s').replace(/7/g,'t')
+    .replace(/\+/g,'t').replace(/\*/g,'').replace(/\(/g,'c')
+    .replace(/\|/g,'i').replace(/-/g,'');
+
+  // whole-word match on plain text
+  const w = (term) => new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b').test(text);
+  // substring match on deobfuscated (Cat 2 & 6)
+  const s = (term) => deob.includes(term);
+  // multi-word phrase match
+  const p = (phrase) => text.includes(phrase);
+
+  // Cat 1 — Mild Profanity
+  if (w('damn')||w('hell')||w('ass')||w('bastard')||w('bitch')||w('crap')||
+      w('piss')||w('pissed')||w('screw')||w('suck')||w('blows')||w('crotch')||
+      w('nuts')||w('balls')||w('jerk')||w('jackass')||w('dumbass')||
+      w('smartass')||w('badass')||w('wiseass')) return true;
+
+  // Cat 2 — Stronger Profanity (deobfuscation + substring)
+  if (['fuck','fucking','fucked','fucker','fuckface','motherfucker',
+       'shit','shitty','bullshit','horseshit','shithead','shithole',
+       'cock','dick','dickhead','pussy','cunt','tit','twat','prick']
+      .some(t => s(t))) return true;
+
+  // Cat 3 — Sexual Terms
+  if (w('sex')||w('sexy')||w('erection')||w('orgasm')||w('climax')||
+      w('aroused')||w('horny')||w('slutty')||w('slut')||w('whore')||
+      w('hooker')||w('skank')||w('tramp')||w('harlot')||w('promiscuous')||
+      w('fornicate')||w('intercourse')||w('genitals')||w('penis')||
+      w('vagina')||w('breasts')||w('boobs')||w('tits')||w('butt')||
+      w('masturbate')||p('jerk off')||p('get laid')||w('hump')||
+      w('grind')||w('fondle')||w('grope')||w('naughty')||w('kinky')||
+      w('fetish')||w('porn')||w('pornographic')||w('naked')||w('bang'))
+    return true;
+
+  // Cat 4 — Violence & Gore
+  if (w('decapitate')||w('disembowel')||w('massacre')||w('slaughter')||
+      w('butcher')||w('mutilate')||w('torture')||w('dismember')||w('impale')||
+      w('bludgeon')||w('bloodbath')||w('gore')||w('guts')||w('carnage')||
+      w('splatter')||w('eviscerate')||w('maim')||w('gouge')||w('castrate')||
+      w('slit')) return true;
+
+  // Cat 5 — Drugs & Substance Abuse
+  if (w('cocaine')||w('heroin')||w('methamphetamine')||w('meth')||w('crack')||
+      w('smack')||w('dope')||w('junkie')||w('dealer')||w('stoned')||
+      w('wasted')||w('tripping')||w('high')||w('overdose')||p('shoot up')||
+      w('snort')||w('bong')||w('blunt')||w('roach')||p('strung out'))
+    return true;
+
+  // Cat 6 — Slurs & Hate Speech (deobfuscation + substring)
+  if (['nigger','nigga','faggot','kike','chink','spic','wetback','coon',
+       'redskin','homo','tranny','halfbreed','mongrel','gook','dyke',
+       'towelhead','raghead','darkie','jap','kyke','wop','dago','polack',
+       'cracker','spook','zipperhead','jiggaboo','beaner','hymie',
+       'fag','cholo','gringo']
+      .some(t => s(t))) return true;
+
+  // Cat 7 — Aggressive Insults
+  if (w('moron')||w('idiot')||w('imbecile')||w('retard')||w('scumbag')||
+      w('lowlife')||w('worthless')||w('pathetic')||w('loser')||w('creep')||
+      w('pervert')||w('deviant')||w('degenerate')||w('freak')||w('psycho')||
+      w('nutjob')||w('lunatic')||w('sicko')||w('filth')||w('scum'))
+    return true;
+
+  // Cat 8 — Dark & Mature Themes
+  if (w('suicide')||p('self-harm')||w('rape')||w('molest')||w('pedophile')||
+      w('incest')||w('necrophilia')||w('bestiality')||w('prostitute')||
+      w('pimp')||w('trafficking')||w('exploitation')||w('predator')||
+      w('grooming')||w('abuse')||p('domestic violence')||w('overdosed')||
+      w('lynching')||w('genocide')) return true;
+
+  return false;
+}
+
+/* ===========================================================
    Home interactions
    =========================================================== */
 const goalInput = document.getElementById('goal-input');
 const clearBtn = document.getElementById('clear-btn');
 const createBtn = document.getElementById('create-plan-btn');
+const safetyWarning = document.getElementById('safety-warning');
 
 document.querySelectorAll('#chips .chip').forEach((chip) => {
   chip.addEventListener('click', () => {
@@ -1527,6 +1631,14 @@ createBtn.addEventListener('click', async () => {
     goalInput.focus();
     return;
   }
+
+  // Safety filter — intercept before any processing
+  if (containsBlockedContent(goal)) {
+    safetyWarning.classList.add('visible');
+    goalInput.focus();
+    return;
+  }
+  safetyWarning.classList.remove('visible');
 
   // Switch to Action Plan screen, show loading overlay in "loading" state
   navigate('plan');
@@ -1549,6 +1661,12 @@ createBtn.addEventListener('click', async () => {
     overlay.classList.add('error');
     title.textContent = 'Plan generation failed';
     goalEl.textContent = (err && err.message) ? err.message : 'Unknown error calling Claude. Try again.';
+  }
+});
+
+goalInput.addEventListener('input', () => {
+  if (safetyWarning.classList.contains('visible')) {
+    safetyWarning.classList.remove('visible');
   }
 });
 
