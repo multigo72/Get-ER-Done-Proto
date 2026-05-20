@@ -1665,6 +1665,7 @@ createBtn.addEventListener('click', async () => {
     state.currentPlan = planFromApiResponse(apiPlan);
     renderActionPlan();
     overlay.classList.remove('active');
+    savePlan(state.currentPlan); // auto-save every new plan
   } catch (err) {
     overlay.classList.add('error');
     title.textContent = 'Plan generation failed';
@@ -1683,20 +1684,16 @@ goalInput.addEventListener('keydown', (e) => {
 });
 
 /* ===========================================================
-   Save plan
+   Save plan (shared helper + button handler)
    =========================================================== */
-document.getElementById('save-plan-btn').addEventListener('click', () => {
-  if (!state.currentPlan) return;
-  const snapshot = clonePlan(state.currentPlan);
+function savePlan(plan, andNavigate = false) {
+  if (!plan) return;
+  const snapshot = clonePlan(plan);
   snapshot.savedAt = Date.now();
-
-  // If a plan with the same goal already exists, update it in place.
-  // Otherwise, add it as a new entry at the top of the list.
   const normalize = (s) => s.trim().toLowerCase();
   const existingIdx = state.savedPlans.findIndex(
     (p) => normalize(p.goal) === normalize(snapshot.goal)
   );
-
   if (existingIdx >= 0) {
     snapshot.id = state.savedPlans[existingIdx].id;
     state.savedPlans[existingIdx] = snapshot;
@@ -1704,9 +1701,12 @@ document.getElementById('save-plan-btn').addEventListener('click', () => {
     snapshot.id = nextPlanId++;
     state.savedPlans.unshift(snapshot);
   }
-
   renderSavedPlans();
-  navigate('saved');
+  if (andNavigate) navigate('saved');
+}
+
+document.getElementById('save-plan-btn').addEventListener('click', () => {
+  savePlan(state.currentPlan, true);
 });
 
 /* ===========================================================
