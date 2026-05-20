@@ -417,8 +417,29 @@
     padding: 13px 16px;
     border-top: 0.5px solid rgba(28, 26, 23, 0.1);
     min-height: 48px;
+    /* Disable OS text-select / callout / drag on long press */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
   }
   .task-row:first-child { border-top: none; }
+  /* When user taps the pencil, re-enable native text editing */
+  .task-row.editing {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  .task-row.editing .task-text {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    cursor: text;
+  }
   .checkbox {
     width: 22px;
     height: 22px;
@@ -451,7 +472,12 @@
     word-break: break-word;
     white-space: normal;
     outline: none;
-    cursor: text;
+    cursor: default;
+    /* Match parent — no selection / callout when not editing */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
   }
   .task-text.done {
     text-decoration: line-through;
@@ -908,6 +934,10 @@
     align-items: flex-start;
     gap: 10px;
     overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
   }
   .task-drop-indicator {
     height: 3px;
