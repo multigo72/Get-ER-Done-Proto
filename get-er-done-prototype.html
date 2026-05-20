@@ -1468,9 +1468,10 @@ function renderSavedPlans() {
     `;
     card.querySelector('.sp-title').textContent = plan.goal;
 
-    // Open plan
+    // Open plan — restore the saved plan link so Save updates in place
     const open = () => {
       state.currentPlan = clonePlan(plan);
+      state.currentPlan.savedPlanId = plan.id;
       renderActionPlan();
       navigate('plan');
     };
@@ -1493,6 +1494,7 @@ function renderSavedPlans() {
 function clonePlan(plan) {
   return {
     id: plan.id,
+    savedPlanId: plan.savedPlanId || null, // preserves link to saved entry
     goal: plan.goal,
     phases: plan.phases.map((p) => ({
       title: p.title,
@@ -1692,7 +1694,20 @@ function savePlan(plan, andNavigate = false) {
   snapshot.savedAt = Date.now();
   const norm = (s) => s.trim().toLowerCase();
 
-  // If the same title already exists, append the next available number
+  // If this plan is linked to an existing saved entry, update it in place
+  if (plan.savedPlanId) {
+    const idx = state.savedPlans.findIndex(p => p.id === plan.savedPlanId);
+    if (idx >= 0) {
+      snapshot.id = plan.savedPlanId;
+      snapshot.goal = state.savedPlans[idx].goal; // keep the saved title
+      state.savedPlans[idx] = snapshot;
+      renderSavedPlans();
+      if (andNavigate) navigate('saved');
+      return;
+    }
+  }
+
+  // No link yet — new plan. Ensure a unique title.
   const baseGoal = snapshot.goal;
   if (state.savedPlans.some(p => norm(p.goal) === norm(baseGoal))) {
     let num = 2;
@@ -1704,6 +1719,12 @@ function savePlan(plan, andNavigate = false) {
 
   snapshot.id = nextPlanId++;
   state.savedPlans.unshift(snapshot);
+
+  // Link the active plan to this newly created saved entry
+  if (state.currentPlan) {
+    state.currentPlan.savedPlanId = snapshot.id;
+  }
+
   renderSavedPlans();
   if (andNavigate) navigate('saved');
 }
