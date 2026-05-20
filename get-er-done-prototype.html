@@ -885,6 +885,38 @@
   @media (orientation: landscape) and (max-height: 480px) {
     .rotate-overlay { display: flex; }
   }
+
+  /* ── Drag-to-reorder task rows ── */
+  .task-row.task-dragging {
+    opacity: 0.30;
+    background: rgba(196, 85, 59, 0.06);
+    border: 1.5px dashed rgba(196, 85, 59, 0.45);
+    border-radius: 10px;
+  }
+  .task-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9000;
+    background: #FDFAF5;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.20), 0 2px 8px rgba(196,85,59,0.18);
+    border: 1.5px solid rgba(196, 85, 59, 0.5);
+    transform: scale(1.03);
+    opacity: 0.96;
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .task-drop-indicator {
+    height: 3px;
+    background: #C4553B;
+    border-radius: 2px;
+    margin: 1px 10px;
+    pointer-events: none;
+  }
+  .drag-no-scroll { overflow: hidden !important; touch-action: none; }
 </style>
 </head>
 <body>
@@ -1477,6 +1509,7 @@ function renderActionPlan() {
     phase.tasks.forEach((task, taskIdx) => {
       card.appendChild(buildTaskRow(task, phaseIdx, taskIdx));
     });
+    enableTaskDragSort(card, phase);
   });
 
   // Wire up add-task buttons
@@ -1553,6 +1586,129 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
   });
 
   return row;
+}
+
+/* ===========================================================
+   Drag-to-reorder tasks within a phase (long-press + drag)
+   =========================================================== */
+function enableTaskDragSort(card, phase) {
+  const LONG_PRESS_MS = 380;
+  let pressTimer = null;
+  let dragging   = null; // { row, rowIdx, ghost, offsetX, offsetY }
+  let dropIdx    = null;
+
+  function getRows() {
+    return Array.from(card.querySelectorAll('.task-row'));
+  }
+
+  function createGhost(row) {
+    const rect  = row.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'task-ghost';
+    ghost.style.width  = rect.width  + 'px';
+    ghost.style.height = rect.height + 'px';
+    // Copy inner text so the ghost shows the task content
+    const textSrc = row.querySelector('.task-text');
+    if (textSrc) {
+      const span = document.createElement('span');
+      span.style.cssText = 'font-size:14px;color:#1C1A17;font-family:inherit;flex:1;min-width:0;white-space:pre-wrap;word-break:break-word;line-height:1.35;';
+      span.textContent = textSrc.textContent;
+      ghost.appendChild(span);
+    }
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function positionGhost(ghost, clientX, clientY, ox, oy) {
+    ghost.style.left = (clientX - ox) + 'px';
+    ghost.style.top  = (clientY - oy) + 'px';
+  }
+
+  function findDropIdx(clientY) {
+    const rows = getRows();
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].classList.contains('task-dragging')) continue;
+      const rect = rows[i].getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return i;
+    }
+    return rows.length;
+  }
+
+  function clearIndicators() {
+    card.querySelectorAll('.task-drop-indicator').forEach(el => el.remove());
+  }
+
+  function showIndicator(insertBefore) {
+    clearIndicators();
+    const rows = getRows();
+    const ind  = document.createElement('div');
+    ind.className = 'task-drop-indicator';
+    if (insertBefore != null && insertBefore < rows.length) {
+      card.insertBefore(ind, rows[insertBefore]);
+    } else {
+      card.appendChild(ind);
+    }
+  }
+
+  card.addEventListener('touchstart', (e) => {
+    const row = e.target.closest('.task-row');
+    if (!row) return;
+    // Don't intercept if user is tapping a button or contenteditable
+    if (e.target.closest('button') || e.target.closest('[contenteditable]')) return;
+    const touch  = e.touches[0];
+    const rowIdx = getRows().indexOf(row);
+    if (rowIdx === -1) return;
+
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      if (navigator.vibrate) navigator.vibrate(25);
+      const rect   = row.getBoundingClientRect();
+      const offsetX = touch.clientX - rect.left;
+      const offsetY = touch.clientY - rect.top;
+      const ghost  = createGhost(row);
+      positionGhost(ghost, touch.clientX, touch.clientY, offsetX, offsetY);
+      row.classList.add('task-dragging');
+      dropIdx  = rowIdx;
+      dragging = { row, rowIdx, ghost, offsetX, offsetY };
+      card.closest('.screen-scroll')?.classList.add('drag-no-scroll');
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    if (pressTimer !== null) { clearTimeout(pressTimer); pressTimer = null; }
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    positionGhost(dragging.ghost, touch.clientX, touch.clientY, dragging.offsetX, dragging.offsetY);
+    dropIdx = findDropIdx(touch.clientY);
+    showIndicator(dropIdx);
+  }, { passive: false });
+
+  function endDrag() {
+    if (pressTimer !== null) { clearTimeout(pressTimer); pressTimer = null; }
+    if (!dragging) return;
+
+    dragging.ghost.remove();
+    dragging.row.classList.remove('task-dragging');
+    clearIndicators();
+    card.closest('.screen-scroll')?.classList.remove('drag-no-scroll');
+
+    // Compute final target index (account for the hole left by removal)
+    let target = dropIdx ?? dragging.rowIdx;
+    if (target > dragging.rowIdx) target--;
+
+    if (target !== dragging.rowIdx && target >= 0) {
+      const [moved] = phase.tasks.splice(dragging.rowIdx, 1);
+      phase.tasks.splice(target, 0, moved);
+      renderActionPlan();
+    }
+
+    dragging = null;
+    dropIdx  = null;
+  }
+
+  card.addEventListener('touchend',    endDrag, { passive: true });
+  card.addEventListener('touchcancel', endDrag, { passive: true });
 }
 
 /* ===========================================================
