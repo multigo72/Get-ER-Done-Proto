@@ -1537,10 +1537,10 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
   checkbox.style.cssText = 'flex-shrink:0; align-self:center;';
   checkbox.innerHTML = ICON_CHECK_WHITE;
 
-  // Task text — contenteditable div wraps naturally, no height math needed
+  // Task text — contenteditable only while actively editing (pencil tap)
   const textEl = document.createElement('div');
   textEl.className = 'task-text' + (task.done ? ' done' : '');
-  textEl.contentEditable = 'true';
+  textEl.contentEditable = 'false'; // enabled on-demand via pencil
   textEl.textContent = task.text;
 
   // Edit button
@@ -1573,8 +1573,10 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
     }
   });
 
-  // Pencil focuses the text
+  // Pencil activates edit mode
   editBtn.addEventListener('click', () => {
+    row.classList.add('editing');
+    textEl.contentEditable = 'true';
     textEl.focus();
     // Move cursor to end
     const range = document.createRange();
@@ -1585,6 +1587,12 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
     sel.addRange(range);
   });
 
+  // Blur exits edit mode — row goes back to drag-able, non-editable
+  textEl.addEventListener('blur', () => {
+    textEl.contentEditable = 'false';
+    row.classList.remove('editing');
+  });
+
   return row;
 }
 
@@ -1592,10 +1600,13 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
    Drag-to-reorder tasks within a phase (long-press + drag)
    =========================================================== */
 function enableTaskDragSort(card, phase) {
-  const LONG_PRESS_MS = 380;
-  let pressTimer = null;
-  let dragging   = null; // { row, rowIdx, ghost, offsetX, offsetY }
-  let dropIdx    = null;
+  const LONG_PRESS_MS       = 450;  // ms before drag activates
+  const MOVE_CANCEL_PX      = 8;    // finger drift (px) that cancels the timer
+  let pressTimer  = null;
+  let startX      = 0;
+  let startY      = 0;
+  let dragging    = null; // { row, rowIdx, ghost, offsetX, offsetY }
+  let dropIdx     = null;
 
   function getRows() {
     return Array.from(card.querySelectorAll('.task-row'));
@@ -1607,7 +1618,6 @@ function enableTaskDragSort(card, phase) {
     ghost.className = 'task-ghost';
     ghost.style.width  = rect.width  + 'px';
     ghost.style.height = rect.height + 'px';
-    // Copy inner text so the ghost shows the task content
     const textSrc = row.querySelector('.task-text');
     if (textSrc) {
       const span = document.createElement('span');
@@ -1650,22 +1660,29 @@ function enableTaskDragSort(card, phase) {
     }
   }
 
+  // FIX 1: guard only skips buttons and rows actively in edit mode.
+  // textEl.contentEditable is 'false' by default, so the text area IS
+  // now a valid drag target — only the checkbox/pencil buttons are excluded.
   card.addEventListener('touchstart', (e) => {
     const row = e.target.closest('.task-row');
     if (!row) return;
-    // Don't intercept if user is tapping a button or contenteditable
-    if (e.target.closest('button') || e.target.closest('[contenteditable]')) return;
+    if (e.target.closest('button')) return;       // checkbox or pencil — let them tap normally
+    if (row.classList.contains('editing')) return; // actively typing — no drag
+
     const touch  = e.touches[0];
     const rowIdx = getRows().indexOf(row);
     if (rowIdx === -1) return;
 
+    startX = touch.clientX;
+    startY = touch.clientY;
+
     pressTimer = setTimeout(() => {
       pressTimer = null;
       if (navigator.vibrate) navigator.vibrate(25);
-      const rect   = row.getBoundingClientRect();
+      const rect    = row.getBoundingClientRect();
       const offsetX = touch.clientX - rect.left;
       const offsetY = touch.clientY - rect.top;
-      const ghost  = createGhost(row);
+      const ghost   = createGhost(row);
       positionGhost(ghost, touch.clientX, touch.clientY, offsetX, offsetY);
       row.classList.add('task-dragging');
       dropIdx  = rowIdx;
@@ -1675,9 +1692,20 @@ function enableTaskDragSort(card, phase) {
   }, { passive: true });
 
   card.addEventListener('touchmove', (e) => {
-    if (pressTimer !== null) { clearTimeout(pressTimer); pressTimer = null; }
+    if (pressTimer !== null) {
+      // FIX 2: only cancel the timer if the finger moved beyond the slop threshold.
+      // Natural finger tremor is < 5px; a deliberate scroll starts at ~10px.
+      const touch = e.touches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if (Math.sqrt(dx * dx + dy * dy) > MOVE_CANCEL_PX) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      return; // drag hasn't activated yet — don't block scroll
+    }
     if (!dragging) return;
-    e.preventDefault();
+    e.preventDefault(); // block scroll only while actively dragging
     const touch = e.touches[0];
     positionGhost(dragging.ghost, touch.clientX, touch.clientY, dragging.offsetX, dragging.offsetY);
     dropIdx = findDropIdx(touch.clientY);
@@ -1693,7 +1721,6 @@ function enableTaskDragSort(card, phase) {
     clearIndicators();
     card.closest('.screen-scroll')?.classList.remove('drag-no-scroll');
 
-    // Compute final target index (account for the hole left by removal)
     let target = dropIdx ?? dragging.rowIdx;
     if (target > dragging.rowIdx) target--;
 
