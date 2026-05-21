@@ -472,7 +472,8 @@
     color: #1C1A17;
     font-family: 'Open Sans', sans-serif;
     font-weight: 400;
-    line-height: 1.5;
+    /* 1.33 so 2 lines (14×1.33×2 = 37.24) + 26px padding ≤ 64px min-height */
+    line-height: 1.33;
     letter-spacing: -0.15px;
     word-break: break-word;
     white-space: normal;
