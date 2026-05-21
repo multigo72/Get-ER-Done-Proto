@@ -478,7 +478,7 @@
     word-break: break-word;
     white-space: normal;
     outline: none;
-    cursor: default;
+    cursor: pointer; /* tap to edit */
     /* Match parent — no selection / callout when not editing */
     -webkit-user-select: none;
     user-select: none;
@@ -489,14 +489,16 @@
     text-decoration: line-through;
     color: rgba(28, 26, 23, 0.3);
   }
-  .edit-btn {
+  .task-delete-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     color: #B9B7B2;
+    line-height: 0;
   }
-  .edit-btn svg { width: 14px; height: 14px; display: block; }
+  .task-delete-btn svg { width: 14px; height: 14px; display: block; }
+  .task-delete-btn:hover { color: #C4553B; }
 
   .save-plan-wrap {
     padding: 18px 16px 8px;
@@ -1251,11 +1253,11 @@
       </div>
     </div>
 
-    <!-- ============== DELETE MODAL ============== -->
+    <!-- ============== DELETE MODAL (reused for plans + tasks) ============== -->
     <div class="modal-backdrop" id="delete-modal">
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
         <div class="marker modal-title" id="delete-modal-title">Delete</div>
-        <div class="modal-body">Deleting a plan is permenant and cannot be undone.</div>
+        <div class="modal-body" id="delete-modal-body">Deleting a plan is permanent and cannot be undone.</div>
         <button class="modal-delete-btn" id="confirm-delete-btn">Delete Plan</button>
       </div>
     </div>
@@ -1300,6 +1302,7 @@ const ICON_CHECK_WHITE = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www
 const ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z" fill="#B9B7B2"/><path d="M20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#B9B7B2"/></svg>';
 const ICON_PLUS_CIRCLE = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="#C4553B" stroke-width="2"/><path d="M12 8V16M8 12H16" stroke="#C4553B" stroke-width="2" stroke-linecap="round"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 7H18M9 7V5C9 4.45 9.45 4 10 4H14C14.55 4 15 4.45 15 5V7M7 7L7.7 19C7.74 19.55 8.19 20 8.74 20H15.26C15.81 20 16.26 19.55 16.3 19L17 7" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11V17M14 11V17" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_X = '<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3L11 11M11 3L3 11" stroke="#B9B7B2" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const ICON_CHEVRON_RIGHT = '<svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 2L8 6L4 10" stroke="#B9B7B2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /* ===========================================================
@@ -1573,28 +1576,47 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
   checkbox.style.cssText = 'flex-shrink:0; align-self:center;';
   checkbox.innerHTML = ICON_CHECK_WHITE;
 
-  // Task text — contenteditable only while actively editing (pencil tap)
+  // Task text — contenteditable only while actively editing
   const textEl = document.createElement('div');
   textEl.className = 'task-text' + (task.done ? ' done' : '');
-  textEl.contentEditable = 'false'; // enabled on-demand via pencil
+  textEl.contentEditable = 'false';
   textEl.textContent = task.text;
 
-  // Edit button
-  const editBtn = document.createElement('button');
-  editBtn.className = 'edit-btn';
-  editBtn.setAttribute('aria-label', 'Edit');
-  editBtn.style.cssText = 'flex-shrink:0; align-self:center;';
-  editBtn.innerHTML = ICON_PENCIL;
+  // Delete (X) button — replaces former pencil. Tapping the text area enters edit mode.
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'task-delete-btn';
+  deleteBtn.setAttribute('aria-label', 'Delete task');
+  deleteBtn.style.cssText = 'flex-shrink:0; align-self:center;';
+  deleteBtn.innerHTML = ICON_X;
 
   row.appendChild(checkbox);
   row.appendChild(textEl);
-  row.appendChild(editBtn);
+  row.appendChild(deleteBtn);
+
+  // Helper: enter edit mode (cursor at end of text)
+  function enterEditMode() {
+    if (row.classList.contains('editing')) return;
+    row.classList.add('editing');
+    textEl.contentEditable = 'true';
+    textEl.focus();
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(textEl);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 
   // Toggle done
   checkbox.addEventListener('click', () => {
     task.done = !task.done;
     renderActionPlan();
   });
+
+  // Tap anywhere on the text area to start editing
+  // (click only fires after a clean tap — drag/long-press sequences suppress it,
+  //  so this doesn't conflict with drag-to-reorder)
+  textEl.addEventListener('click', enterEditMode);
 
   // Sync edits back to state
   textEl.addEventListener('input', () => {
@@ -1609,24 +1631,16 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
     }
   });
 
-  // Pencil activates edit mode
-  editBtn.addEventListener('click', () => {
-    row.classList.add('editing');
-    textEl.contentEditable = 'true';
-    textEl.focus();
-    // Move cursor to end
-    const range = document.createRange();
-    const sel = window.getSelection();
-    range.selectNodeContents(textEl);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  });
-
   // Blur exits edit mode — row goes back to drag-able, non-editable
   textEl.addEventListener('blur', () => {
     textEl.contentEditable = 'false';
     row.classList.remove('editing');
+  });
+
+  // X icon → open delete-confirmation modal (re-using the saved-plan modal)
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openDeleteModal({ type: 'task', phaseIdx, taskIdx });
   });
 
   return row;
@@ -2078,26 +2092,46 @@ document.getElementById('loading-back-home').addEventListener('click', () => {
 });
 
 /* ===========================================================
-   Delete confirmation modal
+   Delete confirmation modal — handles plans AND tasks
    =========================================================== */
-const deleteModal = document.getElementById('delete-modal');
+const deleteModal     = document.getElementById('delete-modal');
+const deleteModalBody = document.getElementById('delete-modal-body');
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-let pendingDeleteId = null;
+let pendingDelete = null; // { type:'plan', planId } | { type:'task', phaseIdx, taskIdx }
 
-function openDeleteModal(planId) {
-  pendingDeleteId = planId;
+function openDeleteModal(payload) {
+  // Back-compat: callers passing a raw planId integer (saved-plan flow)
+  if (typeof payload === 'number') {
+    payload = { type: 'plan', planId: payload };
+  }
+  pendingDelete = payload;
+  if (payload.type === 'task') {
+    deleteModalBody.textContent  = 'Deleting a task is permanent and cannot be undone.';
+    confirmDeleteBtn.textContent = 'Delete Task';
+  } else {
+    deleteModalBody.textContent  = 'Deleting a plan is permanent and cannot be undone.';
+    confirmDeleteBtn.textContent = 'Delete Plan';
+  }
   deleteModal.classList.add('active');
 }
 
 function closeDeleteModal() {
-  pendingDeleteId = null;
+  pendingDelete = null;
   deleteModal.classList.remove('active');
 }
 
 confirmDeleteBtn.addEventListener('click', () => {
-  if (pendingDeleteId == null) return;
-  state.savedPlans = state.savedPlans.filter((p) => p.id !== pendingDeleteId);
-  renderSavedPlans();
+  if (!pendingDelete) return;
+  if (pendingDelete.type === 'plan') {
+    state.savedPlans = state.savedPlans.filter((p) => p.id !== pendingDelete.planId);
+    renderSavedPlans();
+  } else if (pendingDelete.type === 'task') {
+    const plan = state.currentPlan;
+    if (plan && plan.phases[pendingDelete.phaseIdx]) {
+      plan.phases[pendingDelete.phaseIdx].tasks.splice(pendingDelete.taskIdx, 1);
+      renderActionPlan();
+    }
+  }
   closeDeleteModal();
 });
 
