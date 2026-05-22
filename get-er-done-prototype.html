@@ -187,8 +187,8 @@
     display: flex;
     flex-wrap: wrap;
     gap: 12px 16px;
-    height: 95px;
-    overflow: hidden;
+    /* Grow with chip count — 6 chips wrap onto 3 rows (~120px).
+       Previous fixed 95px clipped the bottom row when chips were added. */
     align-content: flex-start;
     filter: drop-shadow(0px 4px 8px rgba(196, 85, 59, 0.25));
   }
