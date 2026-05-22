@@ -956,6 +956,26 @@
   }
   .drag-no-scroll { overflow: hidden !important; touch-action: none; }
 </style>
+
+<!-- ============================================================
+     PostHog analytics (US Cloud, autocapture ON, recordings OFF)
+     Project: Get Er Done — phc_xgzk8ycGfSFpEUDA6NF2o5WNbhTq2YP8mQT2wEYFzZtn
+     ============================================================ -->
+<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId captureTraceFeedback captureTraceMetric".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init('phc_xgzk8ycGfSFpEUDA6NF2o5WNbhTq2YP8mQT2wEYFzZtn', {
+  api_host: 'https://us.i.posthog.com',
+  person_profiles: 'identified_only',  // anonymous by default — no PII
+  autocapture: true,                    // powers click maps
+  capture_pageview: true,               // automatic $pageview event on load
+  disable_session_recording: true,      // recordings explicitly OFF per request
+  capture_pageleave: true
+});
+// Safe wrapper — no-ops if PostHog is blocked by an ad blocker
+window.track = function(event, props) {
+  try { if (window.posthog && posthog.capture) posthog.capture(event, props || {}); } catch(_) {}
+};
+</script>
 </head>
 <body>
 
@@ -1561,6 +1581,7 @@ function renderActionPlan() {
         done: false,
       });
       renderActionPlan();
+      track('task_added', { phase_idx: phaseIdx });
     });
   });
 }
@@ -1611,6 +1632,7 @@ function buildTaskRow(task, phaseIdx, taskIdx) {
   checkbox.addEventListener('click', () => {
     task.done = !task.done;
     renderActionPlan();
+    track('task_toggled_done', { done: task.done });
   });
 
   // Tap anywhere on the text area to start editing
@@ -1778,6 +1800,7 @@ function enableTaskDragSort(card, phase) {
       const [moved] = phase.tasks.splice(dragging.rowIdx, 1);
       phase.tasks.splice(target, 0, moved);
       renderActionPlan();
+      track('task_reordered', { from: dragging.rowIdx, to: target });
     }
 
     dragging = null;
@@ -1820,6 +1843,7 @@ function renderSavedPlans() {
       state.currentPlan.savedPlanId = plan.id;
       renderActionPlan();
       navigate('plan');
+      track('plan_opened_from_saved', { goal: plan.goal });
     };
     card.querySelector('.sp-info').addEventListener('click', open);
     card.querySelector('.sp-chevron').addEventListener('click', (e) => {
@@ -1853,6 +1877,7 @@ function clonePlan(plan) {
    Navigation
    =========================================================== */
 function navigate(screen) {
+  const prevScreen = state.currentScreen;
   state.currentScreen = screen;
   document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'));
   document.getElementById(`screen-${screen}`).classList.add('active');
@@ -1864,6 +1889,11 @@ function navigate(screen) {
   // Scroll to top when switching
   const scrollEl = document.querySelector(`#screen-${screen} .screen-scroll`);
   if (scrollEl) scrollEl.scrollTop = 0;
+
+  // Analytics — only track real navigations, not the initial home set
+  if (prevScreen && prevScreen !== screen) {
+    track('screen_viewed', { screen, from: prevScreen });
+  }
 }
 
 document.querySelectorAll('[data-nav]').forEach((el) => {
@@ -1973,6 +2003,7 @@ document.querySelectorAll('#chips .chip').forEach((chip) => {
   chip.addEventListener('click', () => {
     goalInput.value = chip.dataset.text;
     goalInput.focus();
+    track('chip_clicked', { chip: chip.dataset.text });
   });
 });
 
@@ -1992,6 +2023,7 @@ createBtn.addEventListener('click', async () => {
   if (containsBlockedContent(goal)) {
     safetyWarning.classList.add('visible');
     goalInput.focus();
+    track('goal_blocked_by_safety_filter', { goal_length: goal.length });
     return;
   }
   safetyWarning.classList.remove('visible');
@@ -2006,6 +2038,9 @@ createBtn.addEventListener('click', async () => {
   goalEl.textContent = goal;
   overlay.classList.add('active');
 
+  track('plan_generation_started', { goal });
+  const t0 = performance.now();
+
   try {
     const apiPlan = await generatePlan(goal);
     // Always preserve the user's exact typed goal — never let the AI rewrite it
@@ -2014,10 +2049,21 @@ createBtn.addEventListener('click', async () => {
     renderActionPlan();
     overlay.classList.remove('active');
     savePlan(state.currentPlan); // auto-save every new plan
+    track('plan_generation_succeeded', {
+      goal,
+      duration_ms: Math.round(performance.now() - t0),
+      phase_count: state.currentPlan.phases.length,
+      task_count: state.currentPlan.phases.reduce((n, p) => n + p.tasks.length, 0),
+    });
   } catch (err) {
     overlay.classList.add('error');
     title.textContent = 'Plan generation failed';
     goalEl.textContent = (err && err.message) ? err.message : 'Unknown error calling Claude. Try again.';
+    track('plan_generation_failed', {
+      goal,
+      duration_ms: Math.round(performance.now() - t0),
+      error: (err && err.message) ? err.message : 'unknown',
+    });
   }
 });
 
@@ -2076,6 +2122,7 @@ function savePlan(plan, andNavigate = false) {
 }
 
 document.getElementById('save-plan-btn').addEventListener('click', () => {
+  track('plan_saved', { goal: state.currentPlan ? state.currentPlan.goal : null });
   savePlan(state.currentPlan, true);
 });
 
@@ -2125,11 +2172,13 @@ confirmDeleteBtn.addEventListener('click', () => {
   if (pendingDelete.type === 'plan') {
     state.savedPlans = state.savedPlans.filter((p) => p.id !== pendingDelete.planId);
     renderSavedPlans();
+    track('plan_deleted');
   } else if (pendingDelete.type === 'task') {
     const plan = state.currentPlan;
     if (plan && plan.phases[pendingDelete.phaseIdx]) {
       plan.phases[pendingDelete.phaseIdx].tasks.splice(pendingDelete.taskIdx, 1);
       renderActionPlan();
+      track('task_deleted');
     }
   }
   closeDeleteModal();
@@ -2149,6 +2198,14 @@ document.addEventListener('keydown', (e) => {
    Initial render
    =========================================================== */
 renderSavedPlans();
+
+// Analytics — fire one app_opened event per page load.
+// $pageview from PostHog autocapture covers raw visits;
+// app_opened is the explicit funnel-top event we'll filter on.
+track('app_opened', {
+  is_mobile: window.matchMedia('(max-width: 768px)').matches,
+  referrer: document.referrer || 'direct',
+});
 
 /* ===========================================================
    Safe-area engine — reads device inset and keeps --safe-bottom
